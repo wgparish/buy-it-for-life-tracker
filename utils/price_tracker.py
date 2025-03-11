@@ -9,7 +9,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-from database import Item, PriceUpdate, Alert, User, PriceHistory, RetailerLink
+from database.database import Item, PriceUpdate, Alert, User, PriceHistory, RetailerLink
 from utils.email import send_price_alert_email
 
 # Load environment variables
@@ -79,6 +79,13 @@ async def check_price_for_link(item_id: str, retailer_link: RetailerLink) -> boo
 
         old_price = item.retailer_links[index].current_price
         price_dropped = False
+
+        # Generate affiliate link if it doesn't exist yet
+        if not item.retailer_links[index].affiliate_url and item.retailer_links[index].affiliate_enabled:
+            affiliate_url = generate_affiliate_link(retailer_link.url, retailer_link.name)
+            if affiliate_url:
+                item.retailer_links[index].affiliate_url = affiliate_url
+                item.retailer_links[index].affiliate_program = retailer_link.name.lower()
 
         # If this is the first time checking or price has changed
         if old_price is None or price != old_price:
@@ -281,6 +288,13 @@ async def notify_subscribers(item: Item, price_update: PriceUpdate) -> None:
     # Mark the price update as having notifications sent
     price_update.notifications_sent = True
 
+    # Find the retailer link that had the price drop
+    dropped_link = None
+    for link in item.retailer_links:
+        if link.name == price_update.retailer and link.price_dropped:
+            dropped_link = link
+            break
+
     # Get all alerts for this item
     alerts = await Alert.find(
         Alert.item_id == str(item.id),
@@ -323,12 +337,16 @@ async def notify_subscribers(item: Item, price_update: PriceUpdate) -> None:
 
         # Send notification if any criteria are met
         if should_notify:
+            # Use affiliate link if available
+            affiliate_url = dropped_link.affiliate_url if dropped_link and dropped_link.affiliate_url else None
+
             await send_price_alert_email(
                 user.email,
                 item,
                 price_update.old_price,
                 price_update.new_price,
-                price_update.percentage_change
+                price_update.percentage_change,
+                affiliate_url=affiliate_url
             )
 
             # Record that this user was notified

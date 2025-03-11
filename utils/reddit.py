@@ -1,4 +1,4 @@
-# app/utils/reddit.py - Reddit API integration for fetching BIFL posts
+# app/utils/reddit.py - Updated to include affiliate links
 
 import asyncio
 import re
@@ -10,8 +10,9 @@ from prawcore import RequestException
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 
-from database import Item, PriceHistory, RetailerLink
+from database.database import Item, PriceHistory, RetailerLink
 from utils.price_tracker import check_price_for_link
+from utils.affiliate import generate_affiliate_link
 
 # Load environment variables
 load_dotenv()
@@ -184,12 +185,26 @@ def extract_retailer_links(content: str) -> List[Dict[str, Any]]:
 
         for retailer in retailer_domains:
             if retailer['domain'] in domain:
-                links.append({
-                    'name': retailer['name'],
+                retailer_name = retailer['name']
+
+                # Create the link object with affiliate information
+                link = {
+                    'name': retailer_name,
                     'url': url,
                     'current_price': None,
-                    'last_checked': None
-                })
+                    'last_checked': None,
+                    'affiliate_enabled': True,
+                    'affiliate_url': None,
+                    'affiliate_program': None
+                }
+
+                # Generate affiliate link
+                affiliate_url = generate_affiliate_link(url, retailer_name)
+                if affiliate_url:
+                    link['affiliate_url'] = affiliate_url
+                    link['affiliate_program'] = retailer_name.lower()
+
+                links.append(link)
                 break
 
     return links

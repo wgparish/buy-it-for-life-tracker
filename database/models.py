@@ -140,3 +140,15 @@ class RedditFetchResponse(BaseModel):
     new_items: int
     updated_items: int
     message: str = "Reddit items refreshed"
+
+class RetailerLink(BaseModel):
+    name: str
+    url: str
+    current_price: Optional[float] = None
+    price_dropped: bool = False
+    last_checked: Optional[datetime] = None
+
+    # New fields for affiliate links
+    affiliate_url: Optional[str] = None
+    affiliate_program: Optional[str] = None  # 'amazon', 'walmart', etc.
+    affiliate_enabled: bool = True  # Can be disabled for specific links if needed

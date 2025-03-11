@@ -5,10 +5,10 @@ from typing import List, Optional
 import re
 from fastapi_auth0 import Auth0User
 
-from database import User, Item
-from models import ItemResponse, ItemsResponse, RedditFetchResponse
+from database.database import User, Item
+from database.models import ItemResponse, ItemsResponse, RedditFetchResponse
 from utils.reddit import fetch_reddit_items
-from auth_config import require_scope, get_user_id
+from auth.auth_config import require_scope, get_user_id
 
 router = APIRouter()
 

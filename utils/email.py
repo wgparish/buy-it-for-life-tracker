@@ -1,4 +1,4 @@
-# app/utils/email.py - Email notification functions
+# app/utils/email.py - Updated email functions to include affiliate links
 
 import os
 import aiosmtplib
@@ -136,9 +136,15 @@ async def send_password_reset_email(to_email: str, reset_token: str) -> bool:
     return await send_email(to_email, subject, html_content)
 
 
-async def send_price_alert_email(to_email: str, item, old_price: float, new_price: float,
-                                 percentage_change: float) -> bool:
-    """Send a price drop alert email."""
+async def send_price_alert_email(
+        to_email: str,
+        item,
+        old_price: float,
+        new_price: float,
+        percentage_change: float,
+        affiliate_url: Optional[str] = None
+) -> bool:
+    """Send a price drop alert email with affiliate link if available."""
     # Format prices with currency
     old_price_formatted = f"${old_price:.2f}"
     new_price_formatted = f"${new_price:.2f}"
@@ -149,13 +155,31 @@ async def send_price_alert_email(to_email: str, item, old_price: float, new_pric
 
     # Determine which retailer has the price drop
     retailer_with_drop = "a retailer"
+    retailer_url = None
     for link in item.retailer_links:
         if link.price_dropped:
             retailer_with_drop = link.name
+            # Use affiliate URL if available, otherwise use regular URL
+            retailer_url = link.affiliate_url if link.affiliate_url else link.url
             break
+
+    # If no specific retailer URL was found but we have an affiliate URL from elsewhere
+    if not retailer_url and affiliate_url:
+        retailer_url = affiliate_url
 
     # Create the item URL for the frontend
     item_url = f"{FRONTEND_URL}/items/{item.id}"
+
+    # Button text and disclosure based on whether we're using affiliate links
+    button_text = "Buy Now" if retailer_url else "View Item Details"
+    button_url = retailer_url if retailer_url else item_url
+
+    # Add affiliate disclosure if using affiliate link
+    affiliate_disclosure = """
+    <p style="color: #7f8c8d; font-size: 12px; margin-top: 5px;">
+        * This link contains affiliate codes. If you make a purchase, we may earn a commission at no additional cost to you.
+    </p>
+    """ if retailer_url and (affiliate_url or any(link.affiliate_url for link in item.retailer_links)) else ""
 
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -182,10 +206,14 @@ async def send_price_alert_email(to_email: str, item, old_price: float, new_pric
             </table>
 
             <div style="text-align: center; margin: 30px 0;">
-                <a href="{item_url}" style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-                    View Item Details
+                <a href="{button_url}" style="background-color: #e74c3c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                    {button_text}
+                </a>
+                <a href="{item_url}" style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-left: 10px;">
+                    View Details
                 </a>
             </div>
+            {affiliate_disclosure}
         </div>
 
         <p>This price was detected on {datetime.now().strftime('%B %d, %Y')}. Prices may change rapidly, so act quickly if you're interested!</p>

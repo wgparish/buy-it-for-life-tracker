@@ -8,11 +8,11 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 # Import local modules
-from database import init_db
+from database.database import init_db
 from routers import items, alerts
 from utils.reddit import fetch_reddit_items
 from utils.price_tracker import check_prices_and_notify
-from auth_config import auth
+from auth.auth_config import auth
 
 # Load environment variables
 load_dotenv()

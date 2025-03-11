@@ -1,14 +1,13 @@
 # app/routers/alerts.py - Updated Alerts router with Auth0 integration
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Optional
-from datetime import datetime
+from typing import List
 from fastapi_auth0 import Auth0User
 
 
-from auth_config import require_scope, get_user_id, require_user
-from database import User, Item, Alert, get_or_create_user
-from models import AlertCreate, AlertUpdate, AlertResponse
+from auth.auth_config import require_scope, get_user_id, require_user
+from database.database import User, Item, Alert, get_or_create_user
+from database.models import AlertCreate, AlertUpdate, AlertResponse
 from routers.items import item_to_response
 
 router = APIRouter()
